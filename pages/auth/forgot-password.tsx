@@ -11,14 +11,7 @@ import { Mail, Loader2, Check, ArrowLeft } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/lib/auth';
@@ -64,7 +57,7 @@ const ForgotPassword: NextPage = () => {
   return (
     <>
       <Head>
-        <title>Reset Password - Supabase App</title>
+        <title>Reset Password</title>
         <meta name="description" content="Reset your password" />
       </Head>
 

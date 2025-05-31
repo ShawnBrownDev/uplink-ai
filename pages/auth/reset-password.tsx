@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { NextPage } from 'next';
 import Head from 'next/head';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -22,7 +22,7 @@ import {
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
+import  { getSupabaseClient} from '@/lib/supabase';
 
 const formSchema = z
   .object({
@@ -56,7 +56,7 @@ const ResetPassword: NextPage = () => {
       try {
         // The URL should contain the access token and refresh token
         // Typically handled automatically by Supabase Auth
-        const { data, error } = await supabase.auth.getSession();
+        const { data, error } = await getSupabaseClient().auth.getSession();
         
         if (error || !data.session) {
           setIsValidLink(false);
@@ -212,9 +212,9 @@ const ResetPassword: NextPage = () => {
             {isValidLink === false && (
               <CardFooter className="justify-center">
                 <Button asChild variant="outline">
-                  <a href="/auth/forgot-password">
+                  <link href="/auth/forgot-password">
                     Request a new password reset link
-                  </a>
+                  </link>
                 </Button>
               </CardFooter>
             )}

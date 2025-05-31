@@ -87,7 +87,7 @@ const Dashboard: NextPage = () => {
   return (
     <>
       <Head>
-        <title>Dashboard - Document Management</title>
+        <title>Dashboard </title>
         <meta name="description" content="Upload and manage your documents" />
       </Head>
 
