@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Download, FileText, Upload, Trash2 } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { getSupabaseClient } from '@/lib/supabase';
 import { DashboardClientProps, Upload as UploadType, UserStats } from '@/lib/types';
 import Link from 'next/link';
