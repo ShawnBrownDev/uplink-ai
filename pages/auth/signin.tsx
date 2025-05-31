@@ -136,7 +136,7 @@ const SignIn: NextPage = () => {
                   
                   <div className="flex justify-end">
                     <Link
-                      href="/auth/forgot-password"
+                      href="/forgot-password"
                       className="text-sm font-medium text-primary hover:underline"
                     >
                       Forgot password?
@@ -165,9 +165,9 @@ const SignIn: NextPage = () => {
             </CardContent>
             <CardFooter className="text-center">
               <p className="text-sm text-muted-foreground">
-                Don't have an account?{' '}
+                Don&apos;t have an account?{' '}
                 <Link
-                  href="/auth/signup"
+                  href="/signup"
                   className="font-medium text-primary hover:underline"
                 >
                   Sign up

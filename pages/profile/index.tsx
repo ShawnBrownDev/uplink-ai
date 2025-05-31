@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Upload, User2, Mail, X } from 'lucide-react';
+import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,14 +21,15 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { MainLayout } from '@/components/layout/main-layout';
 import { useRequireAuth } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseClient } from '@/lib/supabase';
+import { Navbar } from '@/components/layout/navbar';
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: 'Full name must be at least 2 characters' }).optional(),
@@ -58,7 +60,7 @@ const ProfilePage: NextPage = () => {
         setProfileLoading(true);
         
         // Get profile details from profiles table
-        const { data, error } = await supabase
+        const { data, error } = await getSupabaseClient()
           .from('profiles')
           .select('*')
           .eq('id', user.id)
@@ -96,7 +98,7 @@ const ProfilePage: NextPage = () => {
       setIsSaving(true);
       
       // Update profile
-      const { error } = await supabase
+      const { error } = await getSupabaseClient()
         .from('profiles')
         .update({
           full_name: values.fullName,
@@ -108,7 +110,7 @@ const ProfilePage: NextPage = () => {
 
       // Update email if changed
       if (values.email !== user.email) {
-        const { error: updateEmailError } = await supabase.auth.updateUser({
+        const { error: updateEmailError } = await getSupabaseClient().auth.updateUser({
           email: values.email,
         });
         
@@ -167,19 +169,19 @@ const ProfilePage: NextPage = () => {
       
       // Upload file to Supabase Storage
       const filePath = `avatars/${user.id}-${new Date().getTime()}`;
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await getSupabaseClient().storage
         .from('avatars')
         .upload(filePath, file);
         
       if (uploadError) throw uploadError;
       
       // Get public URL
-      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      const { data } = getSupabaseClient().storage.from('avatars').getPublicUrl(filePath);
       
       if (!data.publicUrl) throw new Error('Could not get public URL for avatar');
       
       // Update profile with new avatar URL
-      const { error: updateError } = await supabase
+      const { error: updateError } = await getSupabaseClient()
         .from('profiles')
         .update({
           avatar_url: data.publicUrl,
@@ -218,7 +220,7 @@ const ProfilePage: NextPage = () => {
       const fileName = urlParts[urlParts.length - 1];
       
       // Remove file from storage
-      const { error: removeError } = await supabase.storage
+      const { error: removeError } = await getSupabaseClient().storage
         .from('avatars')
         .remove([`avatars/${fileName}`]);
       
@@ -227,7 +229,7 @@ const ProfilePage: NextPage = () => {
       }
       
       // Update profile
-      const { error: updateError } = await supabase
+      const { error: updateError } = await getSupabaseClient()
         .from('profiles')
         .update({
           avatar_url: null,
@@ -273,11 +275,16 @@ const ProfilePage: NextPage = () => {
   return (
     <>
       <Head>
-        <title>Profile - Supabase App</title>
+        <title>Profile</title>
         <meta name="description" content="Manage your profile" />
       </Head>
 
-      <MainLayout>
+      {/* Use Navbar instead of MainLayout and pass authentication status */}
+      <Navbar isAuthenticated={!!user} />
+
+      {/* Profile content goes here */}
+      <div className="container mx-auto py-8 px-4 dark:bg-gray-900 dark:text-gray-200 min-h-[calc(100vh-64px)]"> {/* Added min-height to push footer down */}
+
         <div className="space-y-6">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
@@ -438,7 +445,7 @@ const ProfilePage: NextPage = () => {
                                 </div>
                               </FormControl>
                               <FormDescription>
-                                We'll send a verification link if you change your email.
+                                We&apos;ll send a verification link if you change your email.
                               </FormDescription>
                               <FormMessage />
                             </FormItem>
@@ -470,7 +477,7 @@ const ProfilePage: NextPage = () => {
                 <CardHeader>
                   <CardTitle>Change Password</CardTitle>
                   <CardDescription>
-                    Change your password or reset it if you've forgotten it.
+                    Change your password or reset it if you&apos;ve forgotten it.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -480,9 +487,11 @@ const ProfilePage: NextPage = () => {
                     </p>
                   </div>
                   <Button variant="outline" asChild>
-                    <a href="/auth/forgot-password">
-                      Send Reset Link
-                    </a>
+                    <Link href="/auth/forgot-password" passHref legacyBehavior>
+                      <Button variant="link" className="text-sm text-blue-600 dark:text-blue-400 p-0">
+                        Forgot password?
+                      </Button>
+                    </Link>
                   </Button>
                 </CardContent>
               </Card>
@@ -491,13 +500,13 @@ const ProfilePage: NextPage = () => {
                 <CardHeader>
                   <CardTitle>Sign Out of All Devices</CardTitle>
                   <CardDescription>
-                    Sign out from all devices where you're currently logged in.
+                    Sign out from all devices where youre currently logged in.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-1">
                     <p className="text-sm">
-                      This will sign you out from all devices, including this one. You'll need to sign in again.
+                      This will sign you out from all devices, including this one. You ll need to sign in again.
                     </p>
                   </div>
                   <Button variant="destructive">
@@ -524,7 +533,7 @@ const ProfilePage: NextPage = () => {
             </TabsContent>
           </Tabs>
         </div>
-      </MainLayout>
+      </div>
     </>
   );
 };

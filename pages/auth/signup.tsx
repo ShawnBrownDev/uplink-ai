@@ -103,7 +103,7 @@ const SignUp: NextPage = () => {
                     We&apos;ve sent you a confirmation email. Please check your inbox and click the confirmation link to continue.
                   </p>
                   <Button asChild className="w-full mt-4">
-                    <Link href="/auth/signin">Back to Sign In</Link>
+                    <Link href="/signin">Back to Sign In</Link>
                   </Button>
                 </div>
               ) : (
@@ -218,7 +218,7 @@ const SignUp: NextPage = () => {
               <p className="text-sm text-muted-foreground">
                 Already have an account?{' '}
                 <Link
-                  href="/auth/signin"
+                  href="/signin"
                   className="font-medium text-primary hover:underline"
                 >
                   Sign in

@@ -91,10 +91,10 @@ const ForgotPassword: NextPage = () => {
                   </div>
                   <h3 className="text-lg font-semibold">Check your email</h3>
                   <p className="text-muted-foreground">
-                    We've sent you a password reset link. Please check your inbox and follow the instructions to reset your password.
+                    We&apos;ve sent you a password reset link. Please check your inbox and follow the instructions to reset your password.
                   </p>
                   <Button asChild className="w-full mt-4">
-                    <Link href="/auth/signin">Back to Sign In</Link>
+                  <Link href="/signin">Back to Sign In</Link>
                   </Button>
                 </div>
               ) : (
@@ -142,7 +142,7 @@ const ForgotPassword: NextPage = () => {
             </CardContent>
             <CardFooter className="text-center">
               <Button variant="ghost" asChild className="mx-auto">
-                <Link href="/auth/signin" className="flex items-center">
+                <Link href="/signin" className="flex items-center">
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back to Sign In
                 </Link>

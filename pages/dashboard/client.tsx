@@ -11,6 +11,7 @@ import { Download, FileText, Upload, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getSupabaseClient } from '@/lib/supabase';
 import { DashboardClientProps, Upload as UploadType, UserStats } from '@/lib/types';
+import Link from 'next/link';
 
 export function DashboardClient({ userId, initialUploads, initialStats }: DashboardClientProps) {
   const [uploads, setUploads] = useState<UploadType[]>(initialUploads || []);   
@@ -38,11 +39,6 @@ export function DashboardClient({ userId, initialUploads, initialStats }: Dashbo
         (payload) => {
           if (payload.eventType === 'INSERT') {
             setUploads((current) => [payload.new as UploadType, ...current]);
-            setStats((current) => ({
-              ...current,
-              total_uploads: current.total_uploads + 1,
-              last_upload: payload.new.created_at,
-            }));
           } else if (payload.eventType === 'DELETE') {
             setUploads((current) =>
               current.filter((upload) => upload.id !== payload.old.id)
@@ -54,6 +50,19 @@ export function DashboardClient({ userId, initialUploads, initialStats }: Dashbo
               )
             );
           }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'user_stats',
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          console.log('User stats update received:', payload.new);
+          setStats(payload.new as UserStats);
         }
       )
       .subscribe();
@@ -165,6 +174,21 @@ export function DashboardClient({ userId, initialUploads, initialStats }: Dashbo
         return;
       }
 
+      // Update user stats after successful deletion
+      const { error: statsUpdateError } = await supabase
+        .from('user_stats')
+        .update({
+          total_uploads: Math.max(0, stats.total_uploads - 1), // Ensure total_uploads doesn't go below 0
+          storage_used: Math.max(0, stats.storage_used - upload.file_size) // Ensure storage_used doesn't go below 0
+          // We don't update last_upload on deletion as it tracks the last upload time
+        })
+        .eq('user_id', userId);
+
+      if (statsUpdateError) {
+        console.error('Error updating user stats after deletion:', statsUpdateError);
+        // Optionally, handle this error, maybe revert the deletion or log it
+      }
+
       // Remove from UI
       setUploads((current) => current.filter((u) => u.id !== upload.id));
       toast({
@@ -223,6 +247,21 @@ export function DashboardClient({ userId, initialUploads, initialStats }: Dashbo
         throw insertError;
       }
 
+      // Update user stats after successful upload insert
+      const { error: statsUpdateError } = await supabase
+        .from('user_stats')
+        .update({
+          total_uploads: stats.total_uploads + 1,
+          storage_used: stats.storage_used + selectedFile.size,
+          last_upload: new Date().toISOString() // Update last_upload timestamp
+        })
+        .eq('user_id', userId);
+
+      if (statsUpdateError) {
+        console.error('Error updating user stats after upload:', statsUpdateError);
+        // Optionally, handle this error, maybe revert the upload or log it for manual correction
+      }
+
       // Simulate processing, then update status
       if (insertedUpload) {
         setTimeout(async () => {
@@ -257,69 +296,56 @@ export function DashboardClient({ userId, initialUploads, initialStats }: Dashbo
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <h1 className="text-3xl font-bold mb-2">Welcome to Uplink AI</h1>
-        <p className="text-gray-600">Upload and process your documents with AI</p>
-      </motion.div>
+    <div className="container mx-auto py-8 px-4 dark:bg-gray-900 dark:text-gray-200">
+      <h1 className="text-3xl font-bold mb-6 dark:text-white">Dashboard</h1>
+      
+      <div className="flex flex-col md:flex-row gap-6 mb-8">
+        {/* Upload Card */}
+        <Card className="flex-1 dark:bg-slate-800 dark:text-gray-200">
+          <CardHeader>
+            <CardTitle>Upload Document</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <Input
+                type="file"
+                accept=".pdf,.csv"
+                onChange={handleFileChange}
+                className="flex-1"
+              />
+              <Button
+                onClick={handleUpload}
+                disabled={!selectedFile || isUploading}
+                className="min-w-[100px]"
+              >
+                {isUploading ? 'Uploading...' : 'Upload'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Upload Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-        className="bg-white rounded-lg shadow-md p-6"
-      >
-        <div className="flex items-center gap-4">
-          <Input
-            type="file"
-            accept=".pdf,.csv"
-            onChange={handleFileChange}
-            className="flex-1"
-          />
-          <Button
-            onClick={handleUpload}
-            disabled={!selectedFile || isUploading}
-            className="min-w-[100px]"
-          >
-            {isUploading ? 'Uploading...' : 'Upload'}
-          </Button>
-        </div>
-      </motion.div>
-
-      {/* Stats Overview */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-        className="grid grid-cols-1 md:grid-cols-3 gap-6"
-      >
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Uploads</CardTitle>
-            <Upload className="h-4 w-4 text-muted-foreground" />
+        {/* Stats Cards */}
+        <Card className="flex-1 dark:bg-slate-800 dark:text-gray-200">
+          <CardHeader>
+            <CardTitle>Total Uploads</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total_uploads}</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Storage Used</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+
+        <Card className="flex-1 dark:bg-slate-800 dark:text-gray-200">
+          <CardHeader>
+            <CardTitle>Storage Used</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatFileSize(stats.storage_used)}</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Last Upload</CardTitle>
-            <Download className="h-4 w-4 text-muted-foreground" />
+
+        <Card className="flex-1 dark:bg-slate-800 dark:text-gray-200">
+          <CardHeader>
+            <CardTitle>Last Upload</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -329,72 +355,75 @@ export function DashboardClient({ userId, initialUploads, initialStats }: Dashbo
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
 
-      {/* Recent Uploads Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.3 }}
-        className="bg-white rounded-lg shadow-md overflow-hidden"
-      >
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>File Name</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Size</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {uploads.map((upload) => (
-              <TableRow key={upload.id}>
-                <TableCell className="font-medium">{upload.file_name}</TableCell>
-                <TableCell>{upload.file_type}</TableCell>
-                <TableCell>{formatFileSize(upload.file_size)}</TableCell>
-                <TableCell>
-                  {new Date(upload.created_at).toLocaleDateString()}
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      upload.status === 'completed'
-                        ? 'default'
-                        : upload.status === 'failed'
-                        ? 'destructive'
-                        : 'secondary'
-                    }
-                  >
-                    {upload.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleFileAction(upload)}
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(upload)}
-                      aria-label="Delete file"
-                    >
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
-                  </div>
-                </TableCell>
+      {/* Uploads Table */}
+      <Card className="dark:bg-slate-800 dark:text-gray-200">
+        <CardHeader>
+          <CardTitle>Your Uploads</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow className="dark:border-gray-700">
+                <TableHead className="dark:text-gray-300">File Name</TableHead>
+                <TableHead className="dark:text-gray-300">Type</TableHead>
+                <TableHead className="dark:text-gray-300">Size</TableHead>
+                <TableHead className="dark:text-gray-300">Date</TableHead>
+                <TableHead className="dark:text-gray-300">Status</TableHead>
+                <TableHead className="text-right dark:text-gray-300">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </motion.div>
+            </TableHeader>
+            <TableBody>
+              {uploads.length === 0 ? (
+                <TableRow className="dark:border-gray-700">
+                  <TableCell colSpan={6} className="text-center dark:text-gray-400">
+                    No uploads yet.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                uploads.map((upload) => (
+                  <TableRow
+                    key={upload.id}
+                    className="dark:border-gray-700"
+                  >
+                    <TableCell className="font-medium dark:text-gray-300">{upload.file_name}</TableCell>
+                    <TableCell className="dark:text-gray-300">{upload.file_type}</TableCell>
+                    <TableCell className="dark:text-gray-300">{(upload.file_size / 1024 / 1024).toFixed(2)} MB</TableCell>
+                    <TableCell className="dark:text-gray-300">{new Date(upload.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <Badge variant={upload.status === 'completed' ? 'default' : 'secondary'}>
+                        {upload.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right dark:text-gray-300">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleFileAction(upload)}
+                          disabled={upload.status !== 'completed'}
+                          className="mr-2 dark:text-gray-400 dark:hover:text-white"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(upload)}
+                          className="dark:text-gray-400 dark:hover:text-white"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }
