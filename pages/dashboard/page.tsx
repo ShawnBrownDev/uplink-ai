@@ -11,7 +11,7 @@ export default function DashboardPage() {
   
   // Redirect if no user is found
   if (!user?.user?.id) {
-    redirect('/auth/signin')
+    redirect('/signin')
   }
   
   // Fetch uploads with their associated outputs

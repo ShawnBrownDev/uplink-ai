@@ -5,6 +5,7 @@ import { DashboardClient } from './client';
 import { getSupabaseClient } from '@/lib/supabase';
 import { useEffect, useState } from 'react';
 import type { Database } from '@/types/supabase';
+import { Navbar } from '@/components/layout/navbar';
 
 type Upload = Database['public']['Tables']['uploads']['Row'] & {
   outputs?: Database['public']['Tables']['outputs']['Row'][];
@@ -89,6 +90,8 @@ const Dashboard: NextPage = () => {
         <title>Dashboard - Document Management</title>
         <meta name="description" content="Upload and manage your documents" />
       </Head>
+
+      <Navbar isAuthenticated={true} />
 
       <DashboardClient 
         userId={user.id} 

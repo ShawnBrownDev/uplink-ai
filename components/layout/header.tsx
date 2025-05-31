@@ -190,7 +190,7 @@ export function Header() {
                       </Button>
                     ) : (
                       <Button asChild>
-                        <Link href="/auth/signin">Sign In</Link>
+                        <Link href="/signin">Sign In</Link>
                       </Button>
                     )}
                   </nav>
