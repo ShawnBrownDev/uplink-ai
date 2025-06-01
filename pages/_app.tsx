@@ -6,7 +6,12 @@ import { Toaster } from '@/components/ui/toaster';
 import '@/styles/globals.css';
 
 export default function App({ Component, pageProps }: AppProps) {
-  const [supabaseClient] = useState(() => createPagesBrowserClient());
+  const [supabaseClient] = useState(() =>
+    createPagesBrowserClient({
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+      supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    })
+  );
 
   return (
     <SessionContextProvider supabaseClient={supabaseClient}>
