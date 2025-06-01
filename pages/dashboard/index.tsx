@@ -1,7 +1,7 @@
 import { NextPage } from 'next';
 import Head from 'next/head';
 import { useRequireAuth } from '@/lib/auth';
-import { DashboardClient } from './client';
+import DashboardClient from '@/components/dashboard/client';
 import { getSupabaseClient } from '@/lib/supabase';
 import { useEffect, useState } from 'react';
 import type { Database } from '@/types/supabase';
