@@ -47,3 +47,9 @@ export const config = {
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
+
+export async function getServerSideProps() {
+  // This function is added to prevent Next.js from trying to statically optimize/prerender this route.
+  // Middleware should not be prerendered.
+  return { props: {} };
+}
