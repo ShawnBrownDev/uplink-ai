@@ -14,9 +14,10 @@ export default function DashboardPage() {
     storage_used: 0,
     last_upload: null
   })
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const checkUser = async () => {
+    const checkUserAndFetchData = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
         router.push('/signin')
@@ -28,7 +29,7 @@ export default function DashboardPage() {
         setUserId(user.id)
         
         // Fetch uploads
-        const { data: uploadsData } = await supabase
+        const { data: uploadsData, error: uploadsError } = await supabase
           .from('uploads')
           .select(`
             *,
@@ -43,12 +44,16 @@ export default function DashboardPage() {
           .order('created_at', { ascending: false })
 
         // Fetch stats
-        const { data: statsData } = await supabase
+        const { data: statsData, error: statsError } = await supabase
           .from('user_stats')
           .select('*')
           .eq('user_id', user.id)
           .single()
 
+        if (uploadsError) console.error('Error fetching uploads:', uploadsError);
+        if (statsError) console.error('Error fetching user stats:', statsError);
+
+        console.log('Fetched uploadsData in page.tsx:', uploadsData);
         setUploads(uploadsData || [])
         setStats(statsData || {
           total_uploads: 0,
@@ -56,12 +61,13 @@ export default function DashboardPage() {
           last_upload: null
         })
       }
+      setLoading(false);
     }
-    checkUser()
+    checkUserAndFetchData()
   }, [router, supabase])
 
-  if (!userId) {
-    return null // or a loading spinner
+  if (loading || !userId) {
+    return <div>Loading...</div>; // Or a proper loading spinner/component
   }
 
   return (
