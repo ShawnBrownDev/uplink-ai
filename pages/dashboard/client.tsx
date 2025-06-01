@@ -341,19 +341,6 @@ export function DashboardClient({ userId, initialUploads, initialStats }: Dashbo
             <div className="text-2xl font-bold">{formatFileSize(stats.storage_used)}</div>
           </CardContent>
         </Card>
-
-        <Card className="flex-1 dark:bg-slate-800 dark:text-gray-200">
-          <CardHeader>
-            <CardTitle>Last Upload</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {stats.last_upload
-                ? new Date(stats.last_upload).toLocaleDateString()
-                : 'Never'}
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Uploads Table */}
