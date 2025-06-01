@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { DashboardClient } from './client'
+import DashboardClient from '@/components/dashboard/client'
 import { Upload, UserStats } from '@/lib/types'
 
 export default function DashboardPage() {
