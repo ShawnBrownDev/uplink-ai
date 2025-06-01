@@ -1,37 +1,35 @@
 import { useEffect } from 'react';
-import { NextPage } from 'next';
 import { useRouter } from 'next/router';
-import { getSupabaseClient} from '@/lib/supabase';
-import { Loader2 } from 'lucide-react';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
-const AuthCallback: NextPage = () => {
+
+export default function AuthCallback() {
   const router = useRouter();
+  const supabase = createClientComponentClient();
 
   useEffect(() => {
     const handleAuthCallback = async () => {
-      // Get query parameters
-      const { error } = await getSupabaseClient().auth.getSession();
-      
+      const { error } = await supabase.auth.getSession();
       
       if (error) {
-        console.error('Error getting session:', error);
+        console.error('Error during auth callback:', error);
+        router.push('/signin');
+        return;
       }
-      
-      // Redirect to dashboard or home page
+
+      // Successful authentication, redirect to dashboard
       router.push('/dashboard');
     };
 
     handleAuthCallback();
-  }, [router]);
+  }, [router, supabase]);
 
   return (
-    <div className="flex h-screen w-screen items-center justify-center">
-      <div className="flex flex-col items-center space-y-4">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-center text-muted-foreground">Authenticating...</p>
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <h1 className="text-2xl font-semibold mb-4">Completing sign in...</h1>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
       </div>
     </div>
   );
-};
-
-export default AuthCallback;
+}

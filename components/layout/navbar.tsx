@@ -32,7 +32,7 @@ export function Navbar({ isAuthenticated }: NavbarProps) {
             src="/assets/logo-light.png"
             alt="Uplink AI Logo"
             width={500}
-            height={100}
+            height={200}
             className="h-28 w-auto dark:hidden"
           />
           {/* Dark Mode Logo */}
