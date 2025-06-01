@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -64,7 +64,6 @@ export default function DashboardClient({ userId, initialUploads, initialStats }
           filter: `user_id=eq.${userId}`,
         },
         (payload) => {
-          console.log('User stats update received:', payload.new);
           setStats(payload.new as UserStats);
         }
       )
@@ -74,6 +73,30 @@ export default function DashboardClient({ userId, initialUploads, initialStats }
       supabase.removeChannel(channel);
     };
   }, [supabase, userId]);
+
+  // Function to check and fix status inconsistencies
+  const checkAndFixStatus = useCallback(async (upload: UploadType) => {
+    if (upload.status === 'processing') {
+      // Check if the file has been in processing state for more than 5 seconds
+      const processingTime = new Date().getTime() - new Date(upload.created_at).getTime();
+      if (processingTime > 5000) { // 5 seconds
+        // Update to completed status
+        await supabase
+          .from('uploads')
+          .update({ status: 'completed' })
+          .eq('id', upload.id);
+      }
+    }
+  }, [supabase]);
+
+  // Check status of initial uploads
+  useEffect(() => {
+    if (initialUploads) {
+      initialUploads.forEach(upload => {
+        checkAndFixStatus(upload);
+      });
+    }
+  }, [initialUploads, checkAndFixStatus]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -103,7 +126,6 @@ export default function DashboardClient({ userId, initialUploads, initialStats }
         .createSignedUrl(filePath, 60); // URL valid for 60 seconds
 
       if (signedUrlError || !data?.signedUrl) {
-        console.error('Error getting signed URL:', signedUrlError);
         toast({
           title: 'Error',
           description: 'Could not access the file. Please try again.',
@@ -112,20 +134,9 @@ export default function DashboardClient({ userId, initialUploads, initialStats }
         return;
       }
 
-      // Update the status to processing
-      const { error: updateError } = await supabase
-        .from('uploads')
-        .update({ status: 'processing' })
-        .eq('id', upload.id);
-
-      if (updateError) {
-        console.error('Error updating status:', updateError);
-      }
-
       // Open the file in a new tab
       window.open(data.signedUrl, '_blank');
     } catch (error) {
-      console.error('Error handling file action:', error);
       toast({
         title: 'Error',
         description: 'An error occurred while processing the file.',
@@ -227,7 +238,7 @@ export default function DashboardClient({ userId, initialUploads, initialStats }
         .from('uploads')
         .getPublicUrl(filePath);
 
-      // Create record in uploads table
+      // Create record in uploads table with initial status
       const { data: uploadData, error: dbError } = await supabase
         .from('uploads')
         .insert({
@@ -245,7 +256,7 @@ export default function DashboardClient({ userId, initialUploads, initialStats }
         throw dbError;
       }
 
-      // Update user stats (This will also trigger the real-time update for stats)
+      // Update user stats
       const { error: statsError } = await supabase
         .from('user_stats')
         .upsert({
@@ -259,25 +270,37 @@ export default function DashboardClient({ userId, initialUploads, initialStats }
         console.error('Error updating user stats:', statsError);
       }
 
-      // Simulate processing flow:
-      setUploadsMap(currentMap => new Map(currentMap).set(uploadData.id, { ...uploadData, status: 'pending' }));
+      // Update to processing status
+      await supabase
+        .from('uploads')
+        .update({ status: 'processing' })
+        .eq('id', uploadData.id);
 
-      setTimeout(async () => {
-        await supabase
-          .from('uploads')
-          .update({ status: 'processing' })
-          .eq('id', uploadData.id);
-        // The real-time subscription will handle the UI update to processing
-        
-        setTimeout(async () => {
-          await supabase
-            .from('uploads')
-            .update({ status: 'completed' })
-            .eq('id', uploadData.id);
-          // The real-time subscription will handle the UI update to completed
-        }, 3000); // Simulate 3 seconds of processing
+      // Simulate processing time
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
-      }, 1000); // Simulate 1 second delay before processing starts
+      // Update to completed status and ensure it's saved
+      const { error: updateError } = await supabase
+        .from('uploads')
+        .update({ status: 'completed' })
+        .eq('id', uploadData.id);
+
+      if (updateError) {
+        console.error('Error updating to completed status:', updateError);
+        throw updateError;
+      }
+
+      // Verify the status was updated
+      const { data: verifyData, error: verifyError } = await supabase
+        .from('uploads')
+        .select('status')
+        .eq('id', uploadData.id)
+        .single();
+
+      if (verifyError || verifyData?.status !== 'completed') {
+        console.error('Status verification failed:', verifyError);
+        throw new Error('Failed to verify completed status');
+      }
 
       setSelectedFile(null);
       toast({
@@ -285,7 +308,6 @@ export default function DashboardClient({ userId, initialUploads, initialStats }
         description: `${selectedFile.name} was uploaded successfully.`,
       });
     } catch (error) {
-      console.error('Error uploading file:', error);
       toast({
         title: 'Upload failed',
         description: 'An error occurred while uploading the file.',
