@@ -1,53 +1,74 @@
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
-import { use } from 'react'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/router'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { DashboardClient } from './client'
-import { redirect } from 'next/navigation'
+import { Upload, UserStats } from '@/lib/types'
 
 export default function DashboardPage() {
-  const supabase = createServerComponentClient({ cookies })
-  const { data: user } = use(supabase.auth.getUser())
-  
-  // Redirect if no user is found
-  if (!user?.user?.id) {
-    redirect('/signin')
-  }
-  
-  // Fetch uploads with their associated outputs
-  const { data: uploads } = use(
-    supabase
-      .from('uploads')
-      .select(`
-        *,
-        outputs (
-          id,
-          type,
-          url,
-          created_at
-        )
-      `)
-      .eq('user_id', user.user.id)
-      .order('created_at', { ascending: false })
-  )
+  const router = useRouter()
+  const supabase = createClientComponentClient()
+  const [userId, setUserId] = useState<string | null>(null)
+  const [uploads, setUploads] = useState<Upload[]>([])
+  const [stats, setStats] = useState<UserStats>({
+    total_uploads: 0,
+    storage_used: 0,
+    last_upload: null
+  })
 
-  // Fetch user storage stats
-  const { data: stats } = use(
-    supabase
-      .from('user_stats')
-      .select('*')
-      .eq('user_id', user.user.id)
-      .single()
-  )
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        router.push('/signin')
+        return
+      }
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setUserId(user.id)
+        
+        // Fetch uploads
+        const { data: uploadsData } = await supabase
+          .from('uploads')
+          .select(`
+            *,
+            outputs (
+              id,
+              type,
+              url,
+              created_at
+            )
+          `)
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+
+        // Fetch stats
+        const { data: statsData } = await supabase
+          .from('user_stats')
+          .select('*')
+          .eq('user_id', user.id)
+          .single()
+
+        setUploads(uploadsData || [])
+        setStats(statsData || {
+          total_uploads: 0,
+          storage_used: 0,
+          last_upload: null
+        })
+      }
+    }
+    checkUser()
+  }, [router, supabase])
+
+  if (!userId) {
+    return null // or a loading spinner
+  }
 
   return (
     <DashboardClient 
-      initialUploads={uploads || []}
-      initialStats={stats || {
-        total_uploads: 0,
-        storage_used: 0,
-        last_upload: null
-      }}
-      userId={user.user.id}
+      userId={userId}
+      initialUploads={uploads}
+      initialStats={stats}
     />
   )
 }
