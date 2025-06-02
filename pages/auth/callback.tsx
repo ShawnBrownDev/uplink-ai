@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
-
 export default function AuthCallback() {
   const router = useRouter();
   const supabase = createClientComponentClient();
