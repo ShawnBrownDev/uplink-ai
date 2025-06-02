@@ -73,7 +73,7 @@ const SignUp: NextPage = () => {
   return (
     <>
       <Head>
-        <title>Sign Up - Supabase App</title>
+        <title>Sign Up</title>
         <meta name="description" content="Create a new account" />
       </Head>
 
