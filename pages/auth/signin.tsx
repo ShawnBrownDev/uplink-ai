@@ -66,7 +66,7 @@ const SignIn: NextPage = () => {
   return (
     <>
       <Head>
-        <title>Sign In - Supabase App</title>
+        <title>Sign In</title>
         <meta name="description" content="Sign in to your account" />
       </Head>
 

@@ -104,7 +104,7 @@ const ResetPassword: NextPage = () => {
   return (
     <>
       <Head>
-        <title>Reset Password - Supabase App</title>
+        <title>Reset Password</title>
         <meta name="description" content="Create a new password" />
       </Head>
 
