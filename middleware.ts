@@ -10,12 +10,12 @@ export async function middleware(req: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession();
 
-  // Allow access to auth callback route
-  if (req.nextUrl.pathname.startsWith('/auth/callback')) {
+  // Allow access to auth callback route and home page
+  if (req.nextUrl.pathname.startsWith('/auth/callback') || req.nextUrl.pathname === '/') {
     return res;
   }
 
-  // If user is not signed in and the current path is not /signin,
+  // If user is not signed in and trying to access protected routes,
   // redirect the user to /signin
   if (!session && req.nextUrl.pathname !== '/signin') {
     return NextResponse.redirect(new URL('/signin', req.url));
